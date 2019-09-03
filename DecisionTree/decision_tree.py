@@ -1,3 +1,10 @@
+"""
+This is a implementation of the decision tree algorithm. It can classify both categorical as well
+as continuous data.
+Author: Pankaj Kumar Msc.
+"""
+
+
 import numpy as np
 import pandas as pd
 from collections import Counter
@@ -237,6 +244,7 @@ class DecisionTreeClassifier:
         print('Current Entropy  is = ', initial_entropy)
         if initial_entropy == 0.0:
             print('Reached leaf Node')
+
         # check if the data is a pure leaf or reached the maximum tree depth
         if (self.is_pure(df)) or (self.counter == self.max_depth):
             classification = self.max_label_class(df)
@@ -274,9 +282,9 @@ class DecisionTreeClassifier:
             df_above = pd.DataFrame(data_above, columns=['x1', 'x2', 'label'])
             false_ans = self.build_tree(df_above)
 
-            # If the answers are the same, then there is no point in asking the qestion.
-            # This could happen when the data is classified even though it is not pure
-            # yet (min_samples or max_depth base case).
+            # Condition below checks if the answers returned by the above trees,
+            # both true condition branch and false condition branch is same. This is
+            # only possible when max depth of the tree is reached.
             if true_ans == false_ans:
                 sub_tree = true_ans
             else:
