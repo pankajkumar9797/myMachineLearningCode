@@ -90,6 +90,11 @@ def train_test_split():
     X_test_df['data'] = X_test_files
     X_test_df['target'] = X_test_class
 
+    return X_train_df, X_test_df
+
+
+def data_to_tfidf_data(X_train_df, X_test_df):
+
     vectorizer = TfidfVectorizer(encoding='latin1')
     X_train = vectorizer.fit_transform(X_train_df['data'].values)
     y_train = X_train_df['target'].values
@@ -99,6 +104,11 @@ def train_test_split():
 
     return X_train, y_train, X_test, y_test
 
+
+def data_to_count_data(X_train_df, X_test_df):
+    # count words, exclude stop words, remove words with frequency less than 50,
+    # then use lemmetizer to count similar words as a single word.
+    raise NotImplementedError
 
 def count_classes(X, y):
     class_word_count = {}
@@ -114,6 +124,9 @@ def count_classes(X, y):
     return class_word_count, class_word_count_total
 
 
+def counts_words_class(data):
+
+
 def naive_bayes(X_train, X_test):
     raise NotImplementedError
 
@@ -126,3 +139,4 @@ if __name__ == '__main__':
     print(total_words)
     for key in class_words.keys():
         temp = class_words[key]
+        print(temp)
