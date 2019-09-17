@@ -161,6 +161,20 @@ def data_to_count_data(X_train_df):
     return word_class, total_word_count, data_doc_words
 
 
+def data_to_words(X_data):
+    data = X_data
+    stop_words = stopwords.words('english')
+    data = data.strip(string.punctuation).lower()
+    data = re.findall('[a-zA-Z]+', data)
+    words = [w for w in data if w not in stop_words and len(w) > 3]
+    word_set, word_c = np.unique(words, return_counts=True)
+    word_count = {}
+    for w, count in zip(word_set, word_c):
+        word_count[w] = count
+
+    return word_count
+
+
 def count_classes(X, y):
     class_word_count = {}
     class_word_count_total = {}
@@ -199,11 +213,30 @@ def naive_bayes(class_word_count, class_word_count_total):
     return probability
 
 
-def probability(word_count_train, total_word_count_train, data_doc_count_train,
-                prior_class_prob, test_data, category):
-    # temp = np.log(word_count_train[category]) - np.log()
+def calculate_prior_probabilities(df):
+    total_documents = df.shape[0]
+    classes, class_counts = np.unique(df['target'].values, return_counts=True)
+    prior_class_prob = {}
+    for cl, counts in zip(classes, class_counts):
+        prior_class_prob[cl] = counts/total_documents
 
-    raise NotImplementedError
+    return prior_class_prob
+
+
+def probability(word_count_train, total_word_count_train, data_doc_count_train,
+                prior_class_prob, point_test_data, category):
+    # find words in the test data
+    test_doc_word_count = data_to_words(point_test_data)
+    prob = {}
+    V = len(word_count_train[category].keys())
+    print(V)
+    for word in test_doc_word_count.keys():
+        if word in word_count_train[category].keys():
+            prob[word] = np.log(prior_class_prob[category]*(test_doc_word_count[word] + 1)/(word_count_train[category][word] + V))
+        else:
+            prob[word] = np.log(prior_class_prob[category]/(word_count_train[category][word] + V))
+
+    return np.sum(prob.values())
 
 
 def predict_single_data(word_count_train, total_word_count_train, data_doc_count_train, prior_class_prob, test_data):
@@ -221,22 +254,12 @@ def predict_single_data(word_count_train, total_word_count_train, data_doc_count
     return predicted_label
 
 
-def calculate_prior_probabilities(df):
-    total_documents = df.shape[0]
-    classes, class_counts = np.unique(df['target'].values(), return_counts=True)
-    prior_class_prob = {}
-    for cl, counts in zip(classes, class_counts):
-        prior_class_prob[cl] = counts/total_documents
-
-    return prior_class_prob
-
-
 def predict(train, test):
     word_count_train, total_word_count_train, data_doc_count_train = data_to_count_data(train)
     # Calculating the prior probabilities
     prior_class_prob = calculate_prior_probabilities(train)
 
-    X_test = test['data'].values()
+    X_test = test['data'].values
     y_predict_list = []
     for xdata in X_test:
         y_predict = predict_single_data(word_count_train, total_word_count_train,
@@ -257,6 +280,5 @@ def score(y_predict, y):
 
 if __name__ == '__main__':
     train, test = train_test_split()
-    word_count, total_word_count, data_doc_count = data_to_count_data(train)
-    probability = naive_bayes(word_count, total_word_count)
-    print(probability)
+    result = predict(train, test)
+    print(result)
