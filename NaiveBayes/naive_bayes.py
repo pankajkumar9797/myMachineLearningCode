@@ -82,10 +82,10 @@ def train_test_split():
     for p in X_test_path:
         temp = p.split('/')
         class_name = temp[1]
-        X_test_files.append(class_name)
+        X_test_class.append(class_name)
         with open(p, 'r', errors='ignore') as f:
             data = f.read()
-            X_test_class.append(data)
+            X_test_files.append(data)
         f.close()
 
     X_test_df = pd.DataFrame()
@@ -205,7 +205,7 @@ def naive_bayes(class_word_count, class_word_count_total):
         for cl in num_of_classes:
             if word in class_word_count[cl].keys():
                 temp = (class_word_count[cl][word] + 1)/(class_word_count_total[word] + V)
-                temp = -np.log(temp)
+                temp = np.log(temp)
                 probability[word][cl] = temp
             else:
                 probability[word][cl] = 0
@@ -228,15 +228,15 @@ def probability(word_count_train, total_word_count_train, data_doc_count_train,
     # find words in the test data
     test_doc_word_count = data_to_words(point_test_data)
     prob = {}
-    V = len(word_count_train[category].keys())
-    print(V)
+    V = len(total_word_count_train.keys())
+    total_c_w = sum(word_count_train[category].values())
     for word in test_doc_word_count.keys():
         if word in word_count_train[category].keys():
-            prob[word] = np.log(prior_class_prob[category]*(test_doc_word_count[word] + 1)/(word_count_train[category][word] + V))
+            prob[word] = np.log((word_count_train[category][word] + 0.1)/(total_c_w + 0.1*V))
         else:
-            prob[word] = np.log(prior_class_prob[category]/(word_count_train[category][word] + V))
+            prob[word] = np.log(0.1/(total_c_w + 0.1*V))
 
-    return np.sum(prob.values())
+    return np.log(prior_class_prob[category]) + sum(prob.values())
 
 
 def predict_single_data(word_count_train, total_word_count_train, data_doc_count_train, prior_class_prob, test_data):
@@ -246,7 +246,7 @@ def predict_single_data(word_count_train, total_word_count_train, data_doc_count
     for c in classes:
         class_prob = probability(word_count_train, total_word_count_train, data_doc_count_train,
                                  prior_class_prob, test_data, c)
-        predict_probability[c] = class_prob
+
         if class_prob > max_prob:
             max_prob = class_prob
             predicted_label = c
@@ -278,7 +278,28 @@ def score(y_predict, y):
     return count/len(y)
 
 
+def sklean_classify():
+    from sklearn.datasets import fetch_20newsgroups
+    from sklearn.naive_bayes import MultinomialNB
+    from sklearn import metrics
+
+    news_train = fetch_20newsgroups(subset='train', shuffle=True)
+    news_test = fetch_20newsgroups(subset='test', shuffle=True)
+
+    tfid_vector = TfidfVectorizer()
+    X_train_Tfidf = tfid_vector.fit_transform(news_train.data)
+    X_test_Tfidf = tfid_vector.transform(news_test.data)
+
+    clf = MultinomialNB()
+    clf.fit(X_train_Tfidf, news_train.target)
+    predicted = clf.predict(X_test_Tfidf)
+    score = metrics.accuracy_score(predicted, news_test.target)
+    print(score)
+
+
 if __name__ == '__main__':
-    train, test = train_test_split()
-    result = predict(train, test)
-    print(result)
+    # train, test = train_test_split()
+    # result = predict(train, test)
+    # sc = score(result[0], test['target'].values)
+    # print(sc)
+    sklean_classify()
