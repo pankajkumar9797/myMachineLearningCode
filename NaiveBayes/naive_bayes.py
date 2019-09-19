@@ -13,6 +13,7 @@ from sklearn.feature_extraction.text import TfidfVectorizer
 from scipy.sparse import csr_matrix
 import string
 import re
+import time
 
 nltk.download('stopwords')
 nltk.download('punkt')
@@ -98,7 +99,6 @@ class NaiveBayes:
         """
         count words, exclude stop words, remove words with frequency less than 50,
         then use lemmatizer to count similar words as a single word.
-
         :return: frequency of words in respective classes and word frequency in all classes
         """
         word_class = {}
@@ -127,7 +127,9 @@ class NaiveBayes:
                     del word_class[c][word]
                 else:
                     vocabulary.append(word)
-
+        """
+        Setting up the vocabulary of list of words in documents of all classes
+        """
         vocabulary = list(set(vocabulary))
         total_word_count = {}
         for word in vocabulary:
@@ -141,6 +143,10 @@ class NaiveBayes:
 
             total_word_count[word] = temp
 
+        """
+        Setting up the dictionary of words w.r.t. classes, in all classes and 
+        also the class attribute of vocabulary 
+        """
         self.word_class_freq = word_class
         self.word_total_freq = total_word_count
         self.vocabulary = vocabulary
@@ -208,10 +214,9 @@ class NaiveBayes:
         :return: predicted class label which has the maximum probability
         """
         predicted_label = ''
-        max_prob = -1000
+        max_prob = -100000
         for c in self.class_labels:
             class_prob = self.probability(total_word_classes, test_data, c)
-
             if class_prob > max_prob:
                 max_prob = class_prob
                 predicted_label = c
@@ -241,6 +246,11 @@ class NaiveBayes:
 
         return count/len(y)
 
+    @staticmethod
+    def confusion_matrix(y_predict, y):
+        df_confusion = pd.crosstab(y, y_predict)
+        return df_confusion
+
 
 def run_my_naive_bayes():
     file_paths = create_paths_array()
@@ -249,27 +259,58 @@ def run_my_naive_bayes():
     clf.fit()
     y_pred = clf.predict()
     accuracy = clf.score(y_pred[0], test['target'].values)
-    print(accuracy)
+
+    return accuracy
 
 
 def sklearn_classify():
+    """
+    Using the Naive Bayes from Sklearn as a basis for comparing the accuracy of my Naive bayes algorithm
+    :return: accuracy of classification
+    """
+
+    """
+    importing various libraries
+    """
     from sklearn.datasets import fetch_20newsgroups
     from sklearn.naive_bayes import MultinomialNB
     from sklearn import metrics
 
+    """
+    fetching document data set from internet using inbuilt Sklearn function
+    """
     news_train = fetch_20newsgroups(subset='train', shuffle=True)
     news_test = fetch_20newsgroups(subset='test', shuffle=True)
 
+    """
+    Converting the data set into the Term frequency and inverse document frequency.
+    It gives more weight to the words which occur less frequent in class documents
+    """
     tfid_vector = TfidfVectorizer()
     X_train_Tfidf = tfid_vector.fit_transform(news_train.data)
     X_test_Tfidf = tfid_vector.transform(news_test.data)
 
+    """
+    Using inbuilt sklearn naive bayes function
+    """
     clf = MultinomialNB()
     clf.fit(X_train_Tfidf, news_train.target)
     predicted = clf.predict(X_test_Tfidf)
+    """
+    Calculating the accuracy score
+    """
     score = metrics.accuracy_score(predicted, news_test.target)
-    print(score)
+
+    return score
 
 
 if __name__ == '__main__':
-    run_my_naive_bayes()
+    start_time = time.time()
+    my_score = run_my_naive_bayes()
+    my_naive_bayes_time = time.time()
+    print("My program took :", my_naive_bayes_time - start_time)
+    sklearn_score = sklearn_classify()
+    sklearn_time = time.time()
+    print("My Naive Bayes score : {}".format(my_score))
+    print("Sklearn Naive Bayes score: {}".format(sklearn_score))
+    print("Sklearn took :", sklearn_time - my_naive_bayes_time)
